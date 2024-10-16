@@ -1,0 +1,11 @@
+curl -X POST https://<your-region>-<your-project>.cloudfunctions.net/sendNotificationOnRequest \
+-H "Content-Type: application/json" \
+-d '{
+    "token": "your-device-fcm-token",
+    "title": "Notification Title",
+    "body": "This is the notification body",
+    "data": {
+        "key1": "value1",
+        "key2": "value2"
+    }
+}'

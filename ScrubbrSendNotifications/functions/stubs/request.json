@@ -1,0 +1,9 @@
+{
+    "token": "your-device-fcm-token",
+    "title": "Hello!",
+    "body": "This is a test notification",
+    "data": {
+        "key1": "value1",
+        "key2": "value2"
+    }
+}
