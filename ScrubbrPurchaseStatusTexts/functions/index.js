@@ -43,11 +43,11 @@ exports.sendScrubbrPurchaseStatusNotifications = onValueCreated(
           title: messageData.title,
           body: messageData.body,
         },
-        data: {
-          click_action: "FLUTTER_NOTIFICATION_CLICK",
-          read: "false",
-          deleted: "false",
-        },
+        // data: {
+        //   click_action: "FLUTTER_NOTIFICATION_CLICK",
+        //   read: "false",
+        //   deleted: "false",
+        // },
         android: {
           priority: "high",
         },
@@ -58,6 +58,7 @@ exports.sendScrubbrPurchaseStatusNotifications = onValueCreated(
           payload: {
             aps: {
               "content-available": 1,
+              sound: "default"
             },
           },
         },

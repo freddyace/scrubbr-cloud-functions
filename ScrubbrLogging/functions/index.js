@@ -1,20 +1,37 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
-
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+const { onRequest } = require("firebase-functions/v2/https");
+const { logger } = require("firebase-functions");
 
 exports.scrubbrLogger = onRequest((request, response) => {
-    logger.info("Request: ", request.body)
-    logger.info("UI Log recieved", request.body.log);
+    const logData = request.body;
+    const { level, timestamp, source, message, userId, additionalData } = logData;
+
+    // Basic log structure
+    const logMessage = {
+        timestamp: timestamp || new Date().toISOString(),
+        source: source || 'UnknownSource',
+        message: message || 'No message provided',
+        userId: userId || 'Anonymous',
+        additionalData: additionalData || {}
+    };
+
+    // Log based on the level provided in the request
+    switch (level) {
+        case 'INFO':
+            logger.info(logMessage);
+            break;
+        case 'DEBUG':
+            logger.debug(logMessage);
+            break;
+        case 'ERROR':
+            logger.error(logMessage);
+            break;
+        case 'WARN':
+            logger.warn(logMessage);
+            break;
+        default:
+            // Log as INFO if level is not recognized
+            logger.info({ ...logMessage, level: 'INFO (default)' });
+    }
+
     response.sendStatus(200);
 });

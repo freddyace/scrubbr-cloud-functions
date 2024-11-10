@@ -26,7 +26,8 @@ function saveRecordToDb(fcmToken, notificationTitle, notificationBody, customerI
     title: notificationTitle,
     body: notificationBody,
     token: fcmToken, // Replace with the actual FCM token for the device
-  };
+    sentAt: admin.database.ServerValue.TIMESTAMP,  
+};
 
   // Write the data to the database
   newNotificationRef.set(notificationData)
@@ -40,33 +41,18 @@ function saveRecordToDb(fcmToken, notificationTitle, notificationBody, customerI
 const userNotificationsDbRef = db.ref("user-notifications");
 userNotificationsDbRef.child(customerId).child(notificationId)
       .set({
+        // We might want to reconsider how we save this data
+        // ...might make more sense to store it exactly as it's sent to FCM
+        // Will make the UI client code simpler...
+        // TODO: Add timestamp
       title: notificationTitle,
       body: notificationBody,
       token: fcmToken, // Replace with the actual FCM token for the device
       read: false,
       deleted: false,
+      sentAt: admin.database.ServerValue.TIMESTAMP,
     });
 }
-
-// FCM Notification Helper - uncomment if sending direct to device
-// async function sendFcmNotification(token, title, body) {
-//     const message = {
-//         token: token,
-//         notification: {
-//             title: title,
-//             body: body,
-//         },
-//     };
-
-//     try {
-//         const response = await admin.messaging().send(message);
-//         logger.info("Successfully sent FCM notification:", response);
-//     } catch (error) {
-//         logger.error("Error sending FCM notification:", error.message);
-//         logger.error(error);
-//         throw error;
-//     }
-// }
 
 axios.defaults.headers.common["X-Shopify-Access-Token"] = "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";
 
@@ -179,15 +165,21 @@ exports.scrubbrTrackr = onRequest(async (request, response) => {
         let notificationBody = "";
 
         // Determine which Shopify event to send and FCM notification
-        if (taskStatus === statusMap.Started) {
+        if (Number(taskStatus) === statusMap.Started) {
             eventStatus = "in_transit";
             notificationBody = "A scrubbr is on their way to your vehicle!";
-        } else if (taskStatus === statusMap.Arrived) {
+        } else if (Number(taskStatus) === statusMap.Arrived) {
             eventStatus = "out_for_delivery";
             notificationBody = "The scrubbr assigned to your vehicle has just arrived!!";
-        } else if (taskStatus === statusMap.Successful) {
+        } else if (Number(taskStatus) === statusMap.Successful) {
             eventStatus = "delivered";
             notificationBody = "Your order has been successfully delivered!";
+        } else if (Number(taskStatus) === statusMap.Cancel) {
+            eventStatus = "delayed";
+            notificationBody = "We're currently experiencing delays and are actively working to find you a scrubbr. We apologize for any inconvenience this may cause!";
+        } else if (Number(taskStatus) === statusMap.Failed) {
+            eventStatus = "failure";
+            notificationBody = "There was an issue with your order. Please contact us promptly so we can resolve it for you.";
         }
 
         // Send Shopify event

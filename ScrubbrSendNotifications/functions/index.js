@@ -63,22 +63,75 @@ exports.sendNotificationOnRequest = functions.https.onRequest(
       },
       //   },
     };
+    const message3 = {
+      token: token,
+      notification: {
+        title: title,
+        body: body,
+      },
+      data: {
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+        read: "false",
+        deleted: "false",
+      },
+      android: {
+        priority: "high",
+      },
+      apns: {
+        headers: {
+          "apns-priority": "10",
+        },
+        payload: {
+          aps: {
+            sound: "default",
+          },
+        },
+      },
+    };
+    
 
     // Send the notification via FCM
     try {
-      const response = await admin.messaging().send(message2);
-      console.log("Notification sent successfully:", response);
+      // const response = await admin.messaging().send(message3);
+      // console.log("Notification sent successfully:", response);
+      const dbNotificationsRef = db.ref("notifications");
+      const dbNewNotificationsref = dbNotificationsRef.push();
+      const notificationId = dbNewNotificationsref.key;
 
       // Optionally, save notification details to Firebase Realtime Database
-      // await db.ref('notifications').push({
-      //     token: token,
-      //     title: title,
-      //     body: body,
-      //     data: data || {},
-      //     sentAt: admin.database.ServerValue.TIMESTAMP,
-      // });
-
-      return res.status(200).send("Notification sent successfully");
+      if(req.headers['x-customer-id']){
+        const customerId = req.headers['x-customer-id'];
+        logger.info("Saving data to db")
+        dbNewNotificationsref.set({
+           title: message3.notification.title,
+           body: message3.notification.body,
+           token: message3.token,
+           sentAt: admin.database.ServerValue.TIMESTAMP.toString(),
+       }).then(()=>{
+         logger.info("Saved notification to DB");
+       }).catch(()=>{
+         logger.error("Failed to save notification to DB");
+       });
+       const userNotificationDbRef = db.ref("user-notifications");
+       logger.info("Writing User Notification...")
+       userNotificationDbRef.child(customerId).child(notificationId)
+       .set({
+         title: message3.notification.title,
+         body: message3.notification.body,
+         token: message3.token,
+         read: false,
+         deleted: false,
+         sentAt: admin.database.ServerValue.TIMESTAMP
+       }).then(()=>{
+         logger.log("Successfully wrote to User Notification DB");
+       }).catch(()=>{
+         logger.log("Failed to write to User Notification DB")
+       });
+       return res.status(200).send("Notification sent successfully");
+      }
+      else{
+        return res.status(200).send("Notification Sent successfully. No customerId was provided in this request.")
+      }
     } catch (error) {
       console.error("Error sending notification:", error);
       return res.status(500).send("Error sending notification");
