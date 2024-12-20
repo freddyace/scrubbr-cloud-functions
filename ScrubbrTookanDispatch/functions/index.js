@@ -14,19 +14,55 @@ const dayjs = require("dayjs");
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
 
+function generateAdditionalJobDetails(req) {
+  try{
+    const properties = req.body.line_items[0]?.properties || [];
+    const result = properties
+      .filter((prop) => prop.name !== "_SKU")
+      .map((prop) => {
+        // Format the name and value
+        const formattedName = prop.name.replace(/^_/, "").replace(/_/g, " "); // Remove leading underscores
+        const formattedValue = prop.value.replace(/\s?\(\+\s?\$\d+(\.\d{2})?\)/g, ""); // Remove (+ $XX.XX)
+        return `${formattedName}: ${formattedValue}`;      
+      })
+      .join(". ");
+      return result;
+  }
+  catch (error){
+    return "Please contact Scrubbr for details on this order: info@scrubbrapp.com";
+  }
+}
+
 exports.scrubbr_tookan_create_order = onRequest((request, response) => {
   logger.info("Request: ", request.body);
   //TODO: Create an order in Tookan
+  const additionalDetails = generateAdditionalJobDetails(request);
+    // Helper function to build the customer address
+  const buildCustomerAddress = (address1, address2, city, province, zip, country) => {
+    let fullAddress = address1;
+    if (address2 && address2.trim() !== "") {
+      fullAddress += ` ${address2}`;
+    }
+    fullAddress += ` ${city} ${province} ${zip} ${country}`;
+    return fullAddress;
+  };
 
   createApptTask = {
     customer_email: request.body.email,
     order_id: request.body.id,
     customer_username: request.body.customer.first_name + request.body.customer.last_name,
     customer_phone: request.body.customer.phone,
-    customer_address: request.body.shipping_address.address1 + " " + request.body.shipping_address.address2 + " " + request.body.shipping_address.city + " " + request.body.shipping_address.province + " " + request.body.shipping_address.zip + " " + request.body.shipping_address.country,
+    customer_address: buildCustomerAddress(
+      request.body.shipping_address.address1,
+      request.body.shipping_address.address2,
+      request.body.shipping_address.city,
+      request.body.shipping_address.province,
+      request.body.shipping_address.zip,
+      request.body.shipping_address.country
+    ),
     latitude: request.body.shipping_address.latitude,
     longitude: request.body.shipping_address.longitude,
-    job_description: request.body.line_items[0].vendor + ":" + request.body.line_items[0].title,
+    job_description: request.body.line_items[0].vendor + ":" + request.body.line_items[0].title + " " + additionalDetails,
     job_pickup_datetime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     job_delivery_datetime: dayjs().add(1, 'hour').format('YYYY-MM-DD HH:mm:ss'),
     has_pickup: "0",
