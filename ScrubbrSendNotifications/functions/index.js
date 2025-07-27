@@ -92,17 +92,18 @@ exports.sendNotificationOnRequest = functions.https.onRequest(
 
     // Send the notification via FCM
     try {
-      // const response = await admin.messaging().send(message3);
-      // console.log("Notification sent successfully:", response);
-      const dbNotificationsRef = db.ref("notifications");
-      const dbNewNotificationsref = dbNotificationsRef.push();
-      const notificationId = dbNewNotificationsref.key;
+      const response = await admin.messaging().send(message3);
+      logger.info("Notification Egress successful:", response);
 
       // Optionally, save notification details to Firebase Realtime Database
+      logger.info("Attempting to save notification details....")
+      const dbNotificationsRef = db.ref("notifications");
+      const notificationMessage = dbNotificationsRef.push();
+      const notificationId = notificationMessage.key;
       if(req.headers['x-customer-id']){
         const customerId = req.headers['x-customer-id'];
         logger.info("Saving data to db")
-        dbNewNotificationsref.set({
+        notificationMessage.set({
            title: message3.notification.title,
            body: message3.notification.body,
            token: message3.token,
